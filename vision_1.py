@@ -17,19 +17,37 @@ class image_converter:
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
         # initialize a publisher to send images from camera1 to a topic named image_topic1
-        self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=1)
+        self.image_pub1 = rospy.Publisher("image_topic1", Image, queue_size=10)
         # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw and use callback function to recieve data
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
+        # initialize a subscriber to recieve messages rom a topic named /robot/camera2/image_raw and use callback function to recieve data
+        self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image, self.callback1)
+
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
+
+
+
+        # Hardcode the y coordinate of green and yellow sphere because they don't move.
+        self.green_center_1 = np.array([405, 544])
+        self.green_center_2 = np.array([395, 540])
+        self.yellow_center_1 = np.array([402, 430])
+        self.yellow_center_2 = np.array([401, 430])
+
+
+
+
     # Recieve data from camera 1, process it, and publish
-    def callback1(self, data):
+    def callback1(self, data_1, data_2):
         # Recieve the image
         try:
-            self.cv_image1 = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image1 = self.bridge.imgmsg_to_cv2(data_1, "bgr8")
+            self.cv_image2 = self.bridge.imgmsg_to_cv2(data_2, "bgr8")
         except CvBridgeError as e:
             print(e)
+
+
 
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
@@ -39,6 +57,7 @@ class image_converter:
         # Publish the results
         try:
             self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
+            self.image_pub2.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
         except CvBridgeError as e:
             print(e)
 
@@ -54,7 +73,23 @@ class image_converter:
         # Calculate pixel coordinates for the centre of the blob
         cx = int(M['m10'] / M['m00'])
         cy = int(M['m01'] / M['m00'])
-        return np.array([cx, cy])
+        if M['m00'] == 0:
+            if image is self.cv_image1:
+                return np.array(last_red_image1)
+            else:
+                return np.array(last_red_image2)
+            # this is in case red is blocked by green
+        else:
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+            if image is self.cv_image1:
+                last_red_image1[0] = cx
+                last_red_image1[1] = cy
+                return np.array([cx, cy])
+            else:
+                last_red_image2[0] = cx
+                last_red_image2[1] = cy
+                return np.array([cx, cy])
 
     # Detecting the centre of the green circle
     def detect_green(self, image):
