@@ -8,7 +8,7 @@ import numpy as np
 from std_msgs.msg import Float64MultiArray, Float64
 
 
-def movement_publisher():
+def movement1_publisher():
     # Defines publisher and subscriber
     # initialize the node named
     rospy.init_node('movement_publisher', anonymous=True)
@@ -39,6 +39,6 @@ def movement_publisher():
 # run the code if the node is called
 if __name__ == '__main__':
     try:
-        movement_publisher()
+        movement1_publisher()
     except rospy.ROSInterruptException:
         pass
