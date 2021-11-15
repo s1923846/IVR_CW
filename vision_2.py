@@ -12,118 +12,218 @@ from cv_bridge import CvBridge, CvBridgeError
 
 
 class image_converter:
+    # Defines publisher and subscriber
+    def __init__(self):
+        # initialize the node named image_processing
+        rospy.init_node('image_processing', anonymous=True)
+        # initialize a publisher to send images from camera1 to a topic named image_topic1
 
-  # Defines publisher and subscriber
-  def __init__(self):
-    # initialize the node named image_processing
-    rospy.init_node('image_processing', anonymous=True)
-    # initialize a publisher to send images from camera2 to a topic named image_topic2
-    self.image_pub2 = rospy.Publisher("image_topic2",Image, queue_size = 1)
-    # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw and use callback function to recieve data
-    self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw",Image,self.callback2)
-    # initialize the bridge between openCV and ROS
-    self.bridge = CvBridge()
+        self.joint1_pub = rospy.Publisher("joint_angle_1", Float64, queue_size=10)
+        self.joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
+        self.joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
+        # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw and use callback function to recieve data
+        self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
+        # initialize a subscriber to recieve messages rom a topic named /robot/camera2/image_raw and use callback function to recieve data
+        self.image_sub2 = rospy.Subscriber("/camera2/robot/image_raw", Image, self.callback2)
 
-    # Hardcode the y coordinate of green and yellow sphere because they don't move.
-    self.green_center_1 = np.array([405, 544])
-    self.green_center_2 = np.array([395, 540])
-    self.yellow_center_1 = np.array([402, 430])
-    self.yellow_center_2 = np.array([401, 430])
+        # initialize the bridge between openCV and ROS
+        self.bridge = CvBridge()
 
-  # In this method you can focus on detecting the centre of the red circle
-  def detect_red(self, image):
-    # Isolate the blue colour in the image as a binary image
-    mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
-    # This applies a dilate that makes the binary region larger (the more iterations the larger it becomes)
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=3)
-    # Obtain the moments of the binary image
-    M = cv2.moments(mask)
-    # Calculate pixel coordinates for the centre of the blob
-    cx = int(M['m10'] / M['m00'])
-    cy = int(M['m01'] / M['m00'])
-    return np.array([cx, cy])
+        # Hardcode the y coordinate of green and yellow sphere because they don't move.
+        self.green_center_1 = np.array([405, 544])
+        self.green_center_2 = np.array([395, 540])
+        self.yellow_center_1 = np.array([402, 430])
+        self.yellow_center_2 = np.array([401, 430])
 
-  # Detecting the centre of the green circle
-  def detect_green(self, image):
-    mask = cv2.inRange(image, (0, 100, 0), (0, 255, 0))
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=3)
-    M = cv2.moments(mask)
-    cx = int(M['m10'] / M['m00'])
-    cy = int(M['m01'] / M['m00'])
-    return np.array([cx, cy])
+    def callback1(self, data_1):
+        try:
+            self.cv_image1 = self.bridge.imgmsg_to_cv2(data_1, "bgr8")
+        except CvBridgeError as e:
+            print(e)
 
-  # Detecting the centre of the blue circle
-  def detect_blue(self, image):
-    mask = cv2.inRange(image, (100, 0, 0), (255, 0, 0))
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=3)
-    M = cv2.moments(mask)
-    cx = int(M['m10'] / M['m00'])
-    cy = int(M['m01'] / M['m00'])
-    return np.array([cx, cy])
+    # Recieve data from camera 2, process it, and publish
+    def callback2(self, data_2):
+        # Recieve the image
+        try:
+            self.cv_image2 = self.bridge.imgmsg_to_cv2(data_2, "bgr8")
+        except CvBridgeError as e:
+            print(e)
 
-  # Detecting the centre of the yellow circle
-  def detect_yellow(self, image):
-    mask = cv2.inRange(image, (0, 100, 100), (0, 255, 255))
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=3)
-    M = cv2.moments(mask)
-    cx = int(M['m10'] / M['m00'])
-    cy = int(M['m01'] / M['m00'])
-    return np.array([cx, cy])
+        # Uncomment if you want to save the image
+        # cv2.imwrite('image_copy.png', cv_image)
 
-  # Calculate the conversion from pixel to meter
-  def pixel2meter(self, image):
-    # Obtain the centre of each coloured blob
-    circle1Pos = self.detect_blue(image)
-    circle2Pos = self.detect_green(image)
-    # find the distance between two circles
-    dist = np.sum((circle1Pos - circle2Pos) ** 2)
-    return 3 / np.sqrt(dist)
+        im1 = cv2.imshow('window1', self.cv_image1)
+        cv2.waitKey(1)
+        # Publish the results
+        try:
+            joint1 = Float64()
+            joint3 = Float64()
+            joint4 = Float64()
+            joint1.data, joint3.data, joint4.data = self.joint_angles()
 
-  # Calculate the relevant joint angles from the image
-  def detect_joint_angles(self, image):
-    a = self.pixel2meter(image)
-    # Obtain the centre of each coloured blob
-    center = a * self.detect_yellow(image)
-    circle1Pos = a * self.detect_blue(image)
-    circle2Pos = a * self.detect_green(image)
-    circle3Pos = a * self.detect_red(image)
-    # Solve using trigonometry
-    ja1 = np.arctan2(center[0] - circle1Pos[0], center[1] - circle1Pos[1])
-    ja2 = np.arctan2(circle1Pos[0] - circle2Pos[0], circle1Pos[1] - circle2Pos[1]) - ja1
-    ja3 = np.arctan2(circle2Pos[0] - circle3Pos[0], circle2Pos[1] - circle3Pos[1]) - ja2 - ja1
-    return np.array([ja1, ja2, ja3])
+            self.joint1_pub.publish(joint1)
+            self.joint3_pub.publish(joint3)
+            self.joint4_pub.publish(joint4)
+        except CvBridgeError as e:
+            print(e)
 
-  # Recieve data, process it, and publish
-  def callback2(self,data):
-    # Recieve the image
-    try:
-      self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
-    except CvBridgeError as e:
-      print(e)
+    # In this method you can focus on detecting the centre of the red circle.
+    def detect_red(self, image):
+        mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
+        kernel = np.ones((5, 5), np.unit8)
+        mask = cv.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        if image is self.cv_image1:
+            if M['m00'] != 0:
+                last_red1 = [int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])]
+            return np.array(last_red1)
+        elif image is self.cv_image2:
+            if M['m00'] != 0:
+                last_red2 = [int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])]
+            return np.array(last_red2)
+        else:
+            print("Invalid image")
+            return
 
-    # Uncomment if you want to save the image
-    #cv2.imwrite('image_copy.png', cv_image)
-    im2=cv2.imshow('window2', self.cv_image2)
-    cv2.waitKey(1)
+    # Detecting the centre of the blue circle
+    def detect_blue(self, image):
+        mask = cv2.inRange(image, (100, 0, 0), (255, 0, 0))
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=3)
+        M = cv2.moments(mask)
+        if image is self.cv_image1:
+            if M['m00'] != 0:
+                last_blue1 = [int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])]
+            return np.array(last_red1)
+        elif image is self.cv_image2:
+            if M['m00'] != 0:
+                last_blue2 = [int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])]
+            return np.array(last_red2)
+        else:
+            print("Invalid image")
+            return
 
-    # Publish the results
-    try:
-      self.image_pub2.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
-    except CvBridgeError as e:
-      print(e)
+    # Calculate the conversion from pixel to meter
+    def pixel2meter(self, image):
+        # Obtain the centre of each coloured blob
+        circle1Pos = self.detect_blue(image)
+        if image is self.cv_image1:
+            circle1Pos = self.yellow_center_1
+            circle2Pos = self.green_center_1
+        elif image is self.cv_image2:
+            circle1Pos = self.yellow_center_2
+            circle2Pos = self.green_center_2
+        else:
+            print("Invalid image")
+            return
+        # find the distance between two circles
+        dist = np.sum((circle1Pos - circle2Pos) ** 2)
+        return 4 / np.sqrt(dist)
+
+    def x_coordinate(self, color):
+        a = self.pixel2meter(self.cv_image1)
+        if color == "red":
+            vector = self.detect_red(self.cv_image2) - self.green_center_1
+        elif color == "blue":
+            vector = self.detect_blue(self.cv_image2) - self.green_center_2
+        return a * vector[0]
+
+    def y_coordinate(self, color):
+        a = self.pixel2meter(self.cv_image1)
+        if color == "red":
+            vector = self.detect_red(self.cv_image1) - self.green_center_1
+        elif color == "blue":
+            vector = self.detect_blue(self.cv_image1) - self.green_center_2
+        return a * vector[0]
+
+    def z_coordinate(self, color):
+        a1 = self.pixel2meter(self.cv_image1)
+        a2 = self.pixel2meter(self.cv_image2)
+        if color == "red":
+            vector1 = self.detect_red(self.cv_image1) - self.green_center_1
+            vector2 = self.detect_red(self.cv_image2) - self.green_center_2
+        elif color == "blue":
+            above_yellow1 = (self.detect_blue(self.cv_image1)[1] - self.yellow_center_1[1]) > 0
+            above_yellow2 = (self.detect_blue(self.cv_image2)[1] - self.yellow_center_2[1]) > 0
+            if not (above_yellow1 & above_yellow2):
+                return 4
+            vector1 = self.detect_blue(self.cv_image1) - self.green_center_1
+            vector2 = self.detect_blue(self.cv_image2) - self.green_center_2
+        return (a1 * vector1[1] + a2 * vector2[1]) / 2
+
+    def all_coordinates(self):
+        green = np.array([0, 0, 0])
+        yellow = np.array([0, 0, 4])
+        x_blue = self.x_coordinate("blue")
+        y_blue = self.y_coordinate("blue")
+        z_blue = self.z_coordinate("blue")
+        blue = np.array([x_blue, y_blue, z_blue])
+        x_red = self.x_coordinate("red")
+        y_red = self.y_coordinate("red")
+        z_red = self.z_coordinate("red")
+        red = np.array([x_red, y_red, z_red])
+        return [green, yellow, blue, red]
+
+    def calc_angle(self, v1, v2):
+        d = np.dot(v1, v2)
+        l1 = np.linalg.norm(v1)
+        l2 = np.linalg.norm(v2)
+        angle = np.arccos(d / (l1 * l2))
+        return angle
+
+    def joint_angles(self):
+        green, yellow, blue, red = self.all_coordinates()
+
+        yellow2blue = blue - yellow
+        yellow2blue_xy = np.array([yellow2blue[0], yellow2blue[1]])
+        blue2red = red - blue
+        joint1 = self.calc_angle(yellow2blue_xy, np.array([0, -1]))
+        if joint1.yellow2blue_xy[0] < 0:
+            joint1 = -joint1
+        joint3 = self.calc_angle(yellow2blue, np.array(yellow))
+        if joint3 > np.pi / 2:
+            joint3 = np.pi - joint3
+        if joint3 < (- np.pi / 2):
+            joint3 = - np.pi + joint3
+        joint4 = self.calc_angle(yellow2blue_xy, blue2red)
+        if joint3 > np.pi / 2:
+            joint4 = np.pi - joint4
+        if joint4 < (- np.pi / 2):
+            joint4 = - np.pi + joint4
+        return [joint1, joint3, joint4]
+
+
+    # Calculate the relevant joint angles from the image
+    def detect_joint_angles(self, image):
+        a = self.pixel2meter(image)
+        # Obtain the centre of each coloured blob
+        if image is self.cv_image1:
+            origin = a * self.green_center_1
+            circle1Pos = a * self.yellow_center_1
+        elif image is self.cv_image2:
+            origin = a * self.green_center_2
+            circle1Pos = a * self.yellow_center_2
+        else:
+            print("Invalid image")
+            return
+        circle2Pos = a * self.detect_blue(image)
+        circle3Pos = a * self.detect_red(image)
+        # Solve using trigonometry
+        ja1 = np.arctan2(origin[0] - circle1Pos[0], origin[1] - circle1Pos[1])
+        ja2 = np.arctan2(circle1Pos[0] - circle2Pos[0], circle1Pos[1] - circle2Pos[1]) - ja1
+        ja3 = np.arctan2(circle2Pos[0] - circle3Pos[0], circle2Pos[1] - circle3Pos[1]) - ja2 - ja1
+        return np.array([ja1, ja2, ja3])
+
 
 # call the class
 def main(args):
-  ic = image_converter()
-  try:
-    rospy.spin()
-  except KeyboardInterrupt:
-    print("Shutting down")
-  cv2.destroyAllWindows()
+    ic = image_converter()
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+    cv2.destroyAllWindows()
+
 
 # run the code if the node is called
 if __name__ == '__main__':
