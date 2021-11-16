@@ -62,7 +62,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        print(self.pixel2meter(self.cv_image1))
+        print(self.pixel2meter(self.cv_image1, True))
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
 
@@ -80,10 +80,10 @@ class image_converter:
 
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
-        image = np.concatenate((self.cv_image1, self.cv_image2), axis = 1)
+        image = np.concatenate((self.cv_image1, self.cv_image2), axis=1)
         im = cv2.imshow('camera1 and camera2', image)
         cv2.waitKey(1)
-        print(self.pixel2meter(self.cv_image2))
+        #print(self.pixel2meter(self.cv_image2, False))
         self.joint_angle_2 = Float64()
         self.joint_angle_2.data = self.calculate_joint_angle()
         self.joint_angle_3 = Float64()
@@ -102,7 +102,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
     # In this method you can focus on detecting the centre of the red circle
-    def detect_red(self, image):
+    def detect_red(self, image, is_image1):
         mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
@@ -111,21 +111,21 @@ class image_converter:
         # If red is blocked by blue
         if M['m00'] == 0:
             # we can use y coordinate of the blue as that of the red
-            if image is self.cv_image1:
-                return np.array([0, self.detect_blue(image)[1], 0])
+            if is_image1:
+                return np.array([0, self.detect_blue(image, True)[1], 0])
             else:
                 # we can use x coordinate of the blue as that of the red
-                return np.array([self.detect_blue(image)[0], 0, 0])
+                return np.array([self.detect_blue(image, False)[0], 0, 0])
         else:
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
-            if image is self.cv_image1:
+            if is_image1:
                 return np.array([0, cx, cy])
             else:
                 return np.array([cx, 0, cy])
 
     # Detecting the centre of the blue circle
-    def detect_blue(self, image):
+    def detect_blue(self, image,is_image1):
         mask = cv2.inRange(image, (100, 0, 0), (255, 0, 0))
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
@@ -134,7 +134,7 @@ class image_converter:
         # If the blue is blocked by the yellow
         if M['m00'] == 0:
             # we can use y coordinate of the yellow as that of the blue
-            if image is self.cv_image1:
+            if is_image1:
                 return np.array([0, self.yellow_center[1], 0])
             else:
                 # we can use x coordinate of the yellow as that of the blue
@@ -142,7 +142,7 @@ class image_converter:
         else:
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
-            if image is self.cv_image1:
+            if is_image1:
                 return np.array([0, cx, cy])
             else:
                 return np.array([cx, 0, cy])
@@ -168,17 +168,19 @@ class image_converter:
         return np.array([cx, cy])
 
     # Calculate the conversion from pixel to meter
-    def pixel2meter(self, image):
+    def pixel2meter(self, image,is_image1):
         # Obtain the centre of each coloured blob
-        circle1Pos = self.detect_red(image)
-        circle2Pos = self.detect_green(image)
+        circle1Pos = self.detect_red(image, is_image1)
+        circle2Pos = self.detect_yellow(image)
         # find the distance between two circles
 
-        temp2 = self.detect_yellow(image)
-        temp1 = self.detect_blue(image)
-        a = np.linalg.norm(np.array(temp1[0],temp1[2])-temp2)
+        #temp2 = self.detect_yellow(image)
+        #temp1 = self.detect_blue(image)
+        #a = np.linalg.norm(np.array(temp1[0],temp1[2])-temp2)
+        #print("length: " + str(a))
 
-        print("length: " + str(a))
+        print('pos1' + str(circle1Pos))
+        print('pos2' + str(circle2Pos))
         dist = circle1Pos[2] - circle2Pos[1]
         return 10 / dist
 
