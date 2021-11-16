@@ -20,8 +20,9 @@ class image_converter:
         self.last_blue2 = np.array([0, 0])
         self.green_center_1 = np.array([405, 544])
         self.green_center_2 = np.array([395, 540])
-        self.yellow_center_1 = np.array([402, 430])
-        self.yellow_center_2 = np.array([401, 430])
+        self.yellow_center_1 = np.array([402, 440])
+        self.yellow_center_2 = np.array([401, 440])
+        self.last_joint1 = 0
         self.cv_image1 = np.array([])
         self.cv_image2 = np.array([])
 
@@ -68,10 +69,9 @@ class image_converter:
             joint4 = Float64()
             joint1.data, joint3.data, joint4.data = self.joint_angles()
 
-            print(self.joint_angles())
             self.joint1_pub.publish(joint1)
             self.joint3_pub.publish(joint3)
-            self.joint4_pub.publish(jointf4)
+            self.joint4_pub.publish(joint4)
         except CvBridgeError as e:
             print(e)
 
@@ -121,49 +121,48 @@ class image_converter:
         return 4 / np.sqrt(dist)
 
     def x_coordinate(self, color):
-        a = self.pixel2meter(self.cv_image1, True)
+        #a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image2, False) - self.green_center_2
         elif color == "blue":
             vector = self.detect_blue(self.cv_image2, False) - self.green_center_2
-        return a * vector[0]
+        return vector[0]
 
     def y_coordinate(self, color):
-        a = self.pixel2meter(self.cv_image1, True)
+        #a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image1, True) - self.green_center_1
         elif color == "blue":
             vector = self.detect_blue(self.cv_image1, True) - self.green_center_1
-        return a * vector[0]
+        return vector[0]
 
     def z_coordinate(self, color):
-        a1 = self.pixel2meter(self.cv_image1, True)
-        a2 = self.pixel2meter(self.cv_image2, False)
+        #a1 = self.pixel2meter(self.cv_image1, True)
+        #a2 = self.pixel2meter(self.cv_image2, False)
         vector1 = np.array([])
         vector2 = np.array([])
         if color == "red":
             vector1 = self.detect_red(self.cv_image1, True) - self.green_center_1
             vector2 = self.detect_red(self.cv_image2, False) - self.green_center_2
-            print(vector1)
         elif color == "blue":
             above_yellow1 = (self.detect_blue(self.cv_image1, True)[1] - self.yellow_center_1[1]) < 0
             above_yellow2 = (self.detect_blue(self.cv_image2, False)[1] - self.yellow_center_2[1]) < 0
             if not (above_yellow1 & above_yellow2):
-                return 4
+                return 102
             vector1 = self.detect_blue(self.cv_image1, True) - self.green_center_1
             vector2 = self.detect_blue(self.cv_image2, False) - self.green_center_2
-            print(vector1)
-        return - (a1 * vector1[1] + a2 * vector2[1]) / 2
+        return - (vector1[1] + vector2[1]) / 2
 
     def all_coordinates(self):
         green = np.array([0, 0, 0])
-        yellow = np.array([0, 0, 4])
+        yellow = np.array([0, 0, 102])
         x_blue = self.x_coordinate("blue")
         y_blue = self.y_coordinate("blue")
         z_blue = self.z_coordinate("blue")
         blue = np.array([x_blue, y_blue, z_blue])
+        print(blue)
         x_red = self.x_coordinate("red")
         y_red = self.y_coordinate("red")
         z_red = self.z_coordinate("red")
@@ -191,10 +190,10 @@ class image_converter:
         if joint3 < (- np.pi / 2):
             joint3 = - np.pi + joint3
         joint4 = self.calc_angle(yellow2blue, blue2red)
-        if joint3 > np.pi / 2:
+        if joint4 > np.pi / 2:
             joint4 = np.pi - joint4
         if joint4 < (- np.pi / 2):
-            joint4 = - np.pi + joint4
+            joint4 = np.pi + joint4
         return [joint1, joint3, joint4]
 
 
