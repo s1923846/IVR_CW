@@ -41,19 +41,16 @@ class image_converter:
         #timesync.registerCallback(self.callback1)
         #timesync.registerCallback(self.callback2)
 
-
-
-
         self.cv_image1 = np.array([])
         self.cv_image2 = np.array([])
 
         # Hardcode the y coordinate of green and yellow sphere because they don't move.
         self.green_center = np.array([395, 405, 542])
         self.yellow_center = np.array([401, 402, 430])
-        self.pixel2meter_1 = 0.035086369433113516
+        self.pixel2meter_1 = 0.0375
         self.pixel2meter_2 = 0.035086369433113516
         #self.yellow_center_2 = np.array([401, 430])
-
+# 0.03802281
 
 
 
@@ -86,7 +83,7 @@ class image_converter:
         image = np.concatenate((self.cv_image1, self.cv_image2), axis = 1)
         im = cv2.imshow('camera1 and camera2', image)
         cv2.waitKey(1)
-
+        print(self.pixel2meter(self.cv_image2))
         self.joint_angle_2 = Float64()
         self.joint_angle_2.data = self.calculate_joint_angle()
         self.joint_angle_3 = Float64()
@@ -173,11 +170,17 @@ class image_converter:
     # Calculate the conversion from pixel to meter
     def pixel2meter(self, image):
         # Obtain the centre of each coloured blob
-        circle1Pos = self.detect_yellow(image)
+        circle1Pos = self.detect_red(image)
         circle2Pos = self.detect_green(image)
         # find the distance between two circles
-        dist = np.sum((circle1Pos - circle2Pos) ** 2)
-        return 4 / np.sqrt(dist)
+
+        temp2 = self.detect_yellow(image)
+        temp1 = self.detect_blue(image)
+        a = np.linalg.norm(np.array(temp1[0],temp1[2])-temp2)
+
+        print("length: " + str(a))
+        dist = circle1Pos[2] - circle2Pos[1]
+        return 10 / dist
 
     # Calculate the relevant joint angles from the image
     def detect_joint_angles(self, image):
@@ -196,14 +199,12 @@ class image_converter:
     def calculate_pos(self, color):
         pos_1 = np.array([])
         pos_2 = np.array([])
-        match color:
-            case 'red':
-                pos_1 = self.detect_red(self.cv_image1)
-                pos_2 = self.detect_red(self.cv_image2)
-            case 'blue':
-                pos_1 = self.detect_blue(self.cv_image1)
-                pos_2 = self.detect_blue(self.cv_image2)
-
+        if(color == 'red'):
+            pos_1 = self.detect_red(self.cv_image1)
+            pos_2 = self.detect_red(self.cv_image2)
+        elif(color == 'blue'):
+            pos_1 = self.detect_blue(self.cv_image1)
+            pos_2 = self.detect_blue(self.cv_image2)
         x = (pos_2[0] - self.green_center[0]) * self.pixel2meter_2
         y = (pos_1[1] - self.green_center[1]) * self.pixel2meter_1
         z_1 = (pos_1[2] - self.green_center[2]) * self.pixel2meter_1

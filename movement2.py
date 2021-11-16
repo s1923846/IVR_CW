@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 
 import roslib
 import sys
@@ -14,7 +15,7 @@ def movement2_publisher():
     rospy.init_node('movement_publisher', anonymous=True)
     rate = rospy.Rate(1)  # 50hz
 
-    robot_joint1_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
+    robot_joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
     robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
     robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
 
@@ -27,7 +28,7 @@ def movement2_publisher():
         joint4 = Float64()
         joint1.data = np.pi * np.sin(cur_time * np.pi / 28)
         joint3.data = (np.pi / 2) * np.sin(cur_time * np.pi / 20)
-        joint4.data = (np.pi / 2) * np.sin(cur_time * np.pi / 18)
+        joint4.data = np.abs((np.pi / 2) * np.sin(cur_time * np.pi / 18))
 
         robot_joint1_pub.publish(joint1)
         robot_joint3_pub.publish(joint3)
