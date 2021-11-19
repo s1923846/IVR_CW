@@ -18,6 +18,16 @@ class image_converter:
         # initialize the node named image_processing
         rospy.init_node('image_processing', anonymous=True)
 
+        self.last_red = np.array([0, 0, 0])
+        self.last_blue = np.array([0, 0, 0])
+        self.cv_image1 = np.array([])
+        self.cv_image2 = np.array([])
+        # Hardcode the y coordinate of green and yellow sphere because they don't move.
+        self.green_center = np.array([399, 400, 543])
+        self.yellow_center = np.array([399, 399, 440])
+        self.last_sensible_j2 = 0
+
+
         # initialize a publisher to send joint angle to a topic named joint_angle_2
         self.joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
         # initialize a publisher to send joint angle to a topic named joint_angle_2
@@ -39,12 +49,7 @@ class image_converter:
         #timesync.registerCallback(self.callback1)
         #timesync.registerCallback(self.callback2)
 
-        self.cv_image1 = np.array([])
-        self.cv_image2 = np.array([])
 
-        # Hardcode the y coordinate of green and yellow sphere because they don't move.
-        self.green_center = np.array([399, 400, 543])
-        self.yellow_center = np.array([399, 399, 440])
         #self.pixel2meter_1 = 0.0375
         #self.pixel2meter_2 = 0.035086369433113516
         #self.yellow_center_2 = np.array([401, 430])
@@ -101,6 +106,21 @@ class image_converter:
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
 
+        if is_image1:
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                self.last_red[1] = cx
+                self.last_red[2] = cy
+            return np.array(self.last_red)
+        else:
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                self.last_red[0] = cx
+                self.last_red[2] = cy
+            return np.array(self.last_red)
+
         # If red is blocked by blue
         if M['m00'] == 0:
             # we can use y coordinate of the blue as that of the red
@@ -123,6 +143,21 @@ class image_converter:
         kernel = np.ones((5, 5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=3)
         M = cv2.moments(mask)
+
+        if is_image1:
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                self.last_blue[1] = cx
+                self.last_blue[2] = cy
+            return np.array(self.last_blue)
+        else:
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                self.last_blue[0] = cx
+                self.last_blue[2] = cy
+            return np.array(self.last_blue)
 
         # If the blue is blocked by the yellow
         if M['m00'] == 0:
@@ -187,26 +222,27 @@ class image_converter:
         elif color == 'blue':
             pos_1 = self.detect_blue(self.cv_image1, True)
             pos_2 = self.detect_blue(self.cv_image2, False)
-            above_yellow1 = (pos_1[1] - self.yellow_center[2]) < 0
-            above_yellow2 = (pos_2[1] - self.yellow_center[2]) < 0
+            above_yellow1 = (pos_1[2] - self.yellow_center[2]) < 0
+            above_yellow2 = (pos_2[2] - self.yellow_center[2]) < 0
             if not (above_yellow1 & above_yellow2):
-                print(color)
-                print(np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 104]))
-                return np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 104])
+                #print(color)
+                #print(np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 104]))
+                return np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 102])
         x = (pos_2[0] - self.green_center[0])
         y = (pos_1[1] - self.green_center[1])
         z_1 = (pos_1[2] - self.green_center[2])
         z_2 = (pos_2[2] - self.green_center[2])
         z = (-z_1 - z_2) / 2
-        print(color)
-        print(np.array([x, y, z]))
+        #print(color)
+        #print(np.array([x, y, z]))
         return np.array([x, y, z])
 
     def all_coordinates(self):
         green = np.array([0, 0, 0])
         yellow = np.array([0, 0, 102])
         blue = self.calculate_pos('blue')
-        #print(blue)
+        print("b")
+        print(blue)
         red = self.calculate_pos('red')
         return [green, yellow, blue, red]
 
@@ -224,23 +260,40 @@ class image_converter:
         #yellow2blue_xz = np.array([yellow2blue[0], yellow2blue[2]])
         blue2red = red - blue
         #print(yellow2blue_xz)
-        joint2 = self.calc_angle(yellow2blue, yellow)
-        if joint2 > np.pi / 2:
-            joint2 = np.pi - joint2
-        if joint2 < (- np.pi / 2):
-            joint2 = - np.pi + joint2
-        #print(joint2)
-        joint3 = self.calc_angle(yellow2blue, yellow)
+        #joint2 = self.calc_angle(yellow2blue, yellow)
+
+        joint3 = self.calc_angle(yellow2blue, np.array([0, 1, 0]))
+        joint3 = - np.pi / 2 + joint3
         if joint3 > np.pi / 2:
             joint3 = np.pi - joint3
         if joint3 < (- np.pi / 2):
             joint3 = - np.pi + joint3
+
+        transformed_x = np.cross(yellow2blue, np.array([0, 1, 0]))
+        print("XXXXXXXXXXXXXXXX" + str(transformed_x))
+        print("yellow to blue: " + str(yellow2blue))
+        joint2 = self.calc_angle(transformed_x, np.array([1, 0, 0]))
+        print("joint2: " + str(joint2))
+        if joint2 > np.pi / 2:
+            joint2 = np.pi - joint2
+        if joint2 < (- np.pi / 2):
+            joint2 = - np.pi + joint2
+
+        if np.absolute(joint3 - np.pi) < 0.15:
+            joint2 = self.last_sensible_j2 + (np.pi / 2) * np.sin(np.pi / 15)
+
+        self.last_sensible_j2 = joint2
+
+
 
         joint4 = self.calc_angle(yellow2blue, blue2red)
         if joint4 > np.pi / 2:
             joint4 = np.pi - joint4
         if joint4 < (- np.pi / 2):
             joint4 = np.pi + joint4
+
+        print(joint2)
+        print(joint3)
         return [joint2, joint3, joint4]
 
 
