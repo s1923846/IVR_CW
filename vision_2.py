@@ -196,7 +196,7 @@ class image_converter:
         if joint4 < (- np.pi / 2):
             joint4 = np.pi + joint4
         return [joint1, joint3, joint4]
-
+        #0.85**(np.sin(np.fabs(joint1)))*
 
 # call the class
 def main(args):
