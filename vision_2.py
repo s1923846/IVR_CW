@@ -162,11 +162,14 @@ class image_converter:
         y_blue = self.y_coordinate("blue")
         z_blue = self.z_coordinate("blue")
         blue = np.array([x_blue, y_blue, z_blue])
-        print(blue)
+
         x_red = self.x_coordinate("red")
         y_red = self.y_coordinate("red")
         z_red = self.z_coordinate("red")
         red = np.array([x_red, y_red, z_red])
+        print('x: ' + str(0.03508 * x_red))
+        print('y: ' + str(0.03636 * y_red))
+        print('z: ' + str(0.03572 * z_red))
         return [green, yellow, blue, red]
 
     def calc_angle(self, v1, v2):

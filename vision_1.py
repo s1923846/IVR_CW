@@ -30,9 +30,9 @@ class image_converter:
 
         # initialize a publisher to send joint angle to a topic named joint_angle_2
         self.joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
-        # initialize a publisher to send joint angle to a topic named joint_angle_2
+        # initialize a publisher to send joint angle to a topic named joint_angle_3
         self.joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
-        # initialize a publisher to send joint angle to a topic named joint_angle_2
+        # initialize a publisher to send joint angle to a topic named joint_angle_3
         self.joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
 
         #sub = message_filters.Subscriber("pose_topic", robot_msgs.msg.Pose)
@@ -50,7 +50,7 @@ class image_converter:
         #timesync.registerCallback(self.callback2)
 
 
-        #self.pixel2meter_1 = 0.0375
+        #self.pixel2meter_1 = 0.0375 # 0.037735
         #self.pixel2meter_2 = 0.035086369433113516
         #self.yellow_center_2 = np.array([401, 430])
         # 0.03802281
