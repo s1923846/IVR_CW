@@ -184,6 +184,7 @@ class image_converter:
         joint1 = self.calc_angle(yellow2blue_xy, np.array([0, -1]))
         if yellow2blue_xy[0] < 0:
             joint1 = -joint1
+
         joint3 = self.calc_angle(yellow2blue, np.array(yellow))
         if joint3 > np.pi / 2:
             joint3 = np.pi - joint3
