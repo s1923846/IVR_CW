@@ -8,18 +8,20 @@ import numpy as np
 from std_msgs.msg import Float64MultiArray, Float64
 
 
-def target_publisher():
+def movement1_publisher():
     # Defines publisher and subscriber
     # initialize the node named
-    rospy.init_node('target_publisher', anonymous=True)
+    rospy.init_node('movement_publisher', anonymous=True)
     rate = rospy.Rate(1)  # 50hz
-    # initialize a publisher for end effector target positions
-    target_pos_pub = rospy.Publisher("target_pos", Float64MultiArray, queue_size=10)
+
+    robot_joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
+    robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
+    robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
 
     t0 = rospy.get_time()
     while not rospy.is_shutdown():
         cur_time = np.array([rospy.get_time()]) - t0
-        #y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
+        # y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
         tx = 3.0 * np.cos(cur_time * np.pi / 20)
         ty = 4.0 * np.sin(cur_time * np.pi / 14) + 0.5
         tz = 1.0 * np.sin(cur_time * np.pi / 18) + 4.5
@@ -28,18 +30,13 @@ def target_publisher():
         print("y: " + str(ty))
         print("z: " + str(tz))
         target_pos.data = np.array([tx, ty, tz])
-        target_pos_pub.publish(target_pos)
+
         rate.sleep()
 
 
 # run the code if the node is called
 if __name__ == '__main__':
-    target_publisher()
     try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print("Shutting down")
-    try:
-        target_publisher()
+        movement1_publisher()
     except rospy.ROSInterruptException:
         pass

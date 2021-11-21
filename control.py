@@ -61,6 +61,10 @@ class forward_kinematics:
 
         # [1, cos(q2), cos(q2) * cos(q3), 0, - a2 * sin(q2) - a3 * cos(q3) * sin(q2), -a3 * cos(q2) * sin(q3)]
 
+        # new jacobian:
+        # [a2*cos(q1)*sin(q2) - a3*(sin(q1)*sin(q3) - cos(q1)*cos(q3)*sin(q2)),   a2*cos(q2)*sin(q1) + a3*cos(q2)*cos(q3)*sin(q1), a3*(cos(q1)*cos(q3) - sin(q1)*sin(q2)*sin(q3))]
+        # [a3*(cos(q1)*sin(q3) + cos(q3)*sin(q1)*sin(q2)) + a2*sin(q1)*sin(q2), - a2*cos(q1)*cos(q2) - a3*cos(q1)*cos(q2)*cos(q3), a3*(cos(q3)*sin(q1) + cos(q1)*sin(q2)*sin(q3))]
+        # [0, - a2*sin(q2) - a3*cos(q3)*sin(q2), -a3*cos(q2)*sin(q3)]
     def callback(self, data1, data2, data3, data4):
         self.joint1_angle = data1
         self.joint3_angle = data2
@@ -118,16 +122,13 @@ class forward_kinematics:
         q2 = q2.data
         q3 = q3.data
 
-        jacobian = np.array([[0, np.sin(q1)*np.sin(q2), np.cos(q1)*np.sin(q3) + np.cos(q3)*np.sin(q1)*np.sin(q2),
-                    a2*np.cos(q1)*np.sin(q2) - a3*(np.sin(q1)*np.sin(q3) - np.cos(q1)*np.cos(q3)*np.sin(q2)),
-                    a2 * np.cos(q2) * np.sin(q1) + a3 * np.cos(q2) * np.cos(q3) * np.sin(q1),
-                    a3 * (np.cos(q1) * np.cos(q3) - np.sin(q1) * np.sin(q2) * np.sin(q3))],
-                    [0, -np.cos(q1) * np.sin(q2), np.sin(q1) * np.sin(q3) - np.cos(q1) * np.cos(q3) * np.sin(q2),
-                    a3 * (np.cos(q1) * np.sin(q3) + np.cos(q3) * np.sin(q1) * np.sin(q2)) + a2 * np.sin(q1) * np.sin(q2),
-                    - a2 * np.cos(q1) * np.cos(q2) - a3 * np.cos(q1) * np.cos(q2) * np.cos(q3),
-                    a3 * (np.cos(q3) * np.sin(q1) + np.cos(q1) * np.sin(q2) * np.sin(q3))],
-                    [1, np.cos(q2), np.cos(q2) * np.cos(q3), 0, - a2 * np.sin(q2) - a3 * np.cos(q3) * np.sin(q2),
-                     -a3 * np.cos(q2) * np.sin(q3)]])
+        jacobian = np.array([[a2*np.cos(q1)*np.sin(q2) - a3*(np.sin(q1)*np.sin(q3) - np.cos(q1)*np.cos(q3)*np.sin(q2)),
+                              a2*np.cos(q2)*np.sin(q1) + a3*np.cos(q2)*np.cos(q3)*np.sin(q1),
+                              a3*(np.cos(q1)*np.cos(q3) - np.sin(q1)*np.sin(q2)*np.sin(q3))],
+                    [a3*(np.cos(q1)*np.sin(q3) + np.cos(q3)*np.sin(q1)*np.sin(q2)) + a2*np.sin(q1)*np.sin(q2),
+                     - a2*np.cos(q1)*np.cos(q2) - a3*np.cos(q1)*np.cos(q2)*np.cos(q3),
+                     a3*(np.cos(q3)*np.sin(q1) + np.cos(q1)*np.sin(q2)*np.sin(q3))],
+                    [0, - a2*np.sin(q2) - a3*np.cos(q3)*np.sin(q2), -a3*np.cos(q2)*np.sin(q3)]])
         return jacobian
 
         # Estimate control inputs for open-loop control
