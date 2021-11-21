@@ -110,8 +110,7 @@ class forward_kinematics:
         z = a1 + a2 * np.cos(q2)
         return x, y, z
 
-        # Calculate the robot Jacobian
-
+    # Calculate the robot Jacobian
     def calculate_jacobian(self, q1, q2, q3):
         a2 = 3.2
         a3 = 2.8
@@ -119,8 +118,8 @@ class forward_kinematics:
         q2 = q2.data
         q3 = q3.data
 
-        jacobian = np.array([[0, np.sin(q1) * np.sin(q2), np.cos(q1) * np.sin(q3) + np.cos(q3) * np.sin(q1) * np.sin(q2),
-                    a2 * np.cos(q1) * np.sin(q2) - a3 * (np.sin(q1) * np.sin(q3) - np.cos(q1) * np.cos(q3) * np.sin(q2)),
+        jacobian = np.array([[0, np.sin(q1)*np.sin(q2), np.cos(q1)*np.sin(q3) + np.cos(q3)*np.sin(q1)*np.sin(q2),
+                    a2*np.cos(q1)*np.sin(q2) - a3*(np.sin(q1)*np.sin(q3) - np.cos(q1)*np.cos(q3)*np.sin(q2)),
                     a2 * np.cos(q2) * np.sin(q1) + a3 * np.cos(q2) * np.cos(q3) * np.sin(q1),
                     a3 * (np.cos(q1) * np.cos(q3) - np.sin(q1) * np.sin(q2) * np.sin(q3))],
                     [0, -np.cos(q1) * np.sin(q2), np.sin(q1) * np.sin(q3) - np.cos(q1) * np.cos(q3) * np.sin(q2),
