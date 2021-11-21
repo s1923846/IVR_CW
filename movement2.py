@@ -28,7 +28,7 @@ def movement2_publisher():
         joint4 = Float64()
         joint1.data = np.pi * np.sin(cur_time * np.pi / 28)
         joint3.data = (np.pi / 2) * np.sin(cur_time * np.pi / 20)
-        joint4.data = np.abs((np.pi / 2) * np.sin(cur_time * np.pi / 18))
+        joint4.data = (np.pi / 2) * np.sin(cur_time * np.pi / 18)
 
         robot_joint1_pub.publish(joint1)
         robot_joint3_pub.publish(joint3)

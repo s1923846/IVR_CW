@@ -27,15 +27,14 @@ class image_converter:
         self.yellow_center = np.array([399, 399, 440])
         self.last_sensible_j2 = 0
 
-
         # initialize a publisher to send joint angle to a topic named joint_angle_2
         self.joint2_pub = rospy.Publisher("joint_angle_2", Float64, queue_size=10)
-        # initialize a publisher to send joint angle to a topic named joint_angle_2
+        # initialize a publisher to send joint angle to a topic named joint_angle_3
         self.joint3_pub = rospy.Publisher("joint_angle_3", Float64, queue_size=10)
-        # initialize a publisher to send joint angle to a topic named joint_angle_2
+        # initialize a publisher to send joint angle to a topic named joint_angle_3
         self.joint4_pub = rospy.Publisher("joint_angle_4", Float64, queue_size=10)
 
-        #sub = message_filters.Subscriber("pose_topic", robot_msgs.msg.Pose)
+        # sub = message_filters.Subscriber("pose_topic", robot_msgs.msg.Pose)
         # initialize a subscriber to recieve messages rom a topic named /robot/camera1/image_raw and use callback function to recieve data
         self.image_sub1 = rospy.Subscriber("/camera1/robot/image_raw", Image, self.callback1)
 
@@ -45,17 +44,14 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
-        #timesync = message_filters.TimeSynchronizer([self.image_sub1, self.image_sub2], 10)
-        #timesync.registerCallback(self.callback1)
-        #timesync.registerCallback(self.callback2)
+        # timesync = message_filters.TimeSynchronizer([self.image_sub1, self.image_sub2], 10)
+        # timesync.registerCallback(self.callback1)
+        # timesync.registerCallback(self.callback2)
 
-
-        #self.pixel2meter_1 = 0.0375
-        #self.pixel2meter_2 = 0.035086369433113516
-        #self.yellow_center_2 = np.array([401, 430])
+        # self.pixel2meter_1 = 0.0375 # 0.037735
+        # self.pixel2meter_2 = 0.035086369433113516
+        # self.yellow_center_2 = np.array([401, 430])
         # 0.03802281
-
-
 
     # Recieve data from camera 1, process it, and publish
     def callback1(self, data):
@@ -65,40 +61,38 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        #print(self.pixel2meter(self.cv_image1, True))
+        # print(self.pixel2meter(self.cv_image1, True))
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
-
-
 
     # Recieve data from camera 2, process it, and publish
     def callback2(self, data):
         # Recieve the image
         try:
-            #self.cv_image1 = self.bridge.imgmsg_to_cv2(data_1, "bgr8")
+            # self.cv_image1 = self.bridge.imgmsg_to_cv2(data_1, "bgr8")
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-
 
         # Uncomment if you want to save the image
         # cv2.imwrite('image_copy.png', cv_image)
         image = np.concatenate((self.cv_image1, self.cv_image2), axis=1)
         im = cv2.imshow('camera1 and camera2', image)
         cv2.waitKey(1)
-        #print(self.pixel2meter(self.cv_image2, False))
+        # print(self.pixel2meter(self.cv_image2, False))
         joint2 = Float64()
         joint3 = Float64()
         joint4 = Float64()
         joint2.data, joint3.data, joint4.data = self.joint_angles()
         # Publish the results
         try:
-            #self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
+            # self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
             self.joint2_pub.publish(joint2)
             self.joint3_pub.publish(joint3)
             self.joint4_pub.publish(joint4)
         except CvBridgeError as e:
             print(e)
+
     # In this method you can focus on detecting the centre of the red circle
     def detect_red(self, image, is_image1):
         mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
@@ -196,19 +190,19 @@ class image_converter:
         return np.array([cx, cy])
 
     # Calculate the conversion from pixel to meter
-    def pixel2meter(self, image,is_image1):
+    def pixel2meter(self, image, is_image1):
         # Obtain the centre of each coloured blob
-        circle1Pos = self.detect_green(image)#, is_image1)
+        circle1Pos = self.detect_green(image)  # , is_image1)
         circle2Pos = self.detect_yellow(image)
         # find the distance between two circles
 
-        #temp2 = self.detect_yellow(image)
-        #temp1 = self.detect_blue(image)
-        #a = np.linalg.norm(np.array(temp1[0],temp1[2])-temp2)
-        #print("length: " + str(a))
+        # temp2 = self.detect_yellow(image)
+        # temp1 = self.detect_blue(image)
+        # a = np.linalg.norm(np.array(temp1[0],temp1[2])-temp2)
+        # print("length: " + str(a))
 
-        #print('pos1' + str(circle1Pos))
-        #print('pos2' + str(circle2Pos))
+        # print('pos1' + str(circle1Pos))
+        # print('pos2' + str(circle2Pos))
         dist = circle1Pos[1] - circle2Pos[1]
         return 10 / dist
 
@@ -225,16 +219,16 @@ class image_converter:
             above_yellow1 = (pos_1[2] - self.yellow_center[2]) < 0
             above_yellow2 = (pos_2[2] - self.yellow_center[2]) < 0
             if not (above_yellow1 & above_yellow2):
-                #print(color)
-                #print(np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 104]))
+                # print(color)
+                # print(np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 104]))
                 return np.array([(pos_2[0] - self.green_center[0]), (pos_1[1] - self.green_center[1]), 102])
         x = (pos_2[0] - self.green_center[0])
         y = (pos_1[1] - self.green_center[1])
         z_1 = (pos_1[2] - self.green_center[2])
         z_2 = (pos_2[2] - self.green_center[2])
         z = (-z_1 - z_2) / 2
-        #print(color)
-        #print(np.array([x, y, z]))
+        # print(color)
+        # print(np.array([x, y, z]))
         return np.array([x, y, z])
 
     def all_coordinates(self):
@@ -257,10 +251,10 @@ class image_converter:
         green, yellow, blue, red = self.all_coordinates()
         yellow2blue = blue - yellow
 
-        #yellow2blue_xz = np.array([yellow2blue[0], yellow2blue[2]])
+        # yellow2blue_xz = np.array([yellow2blue[0], yellow2blue[2]])
         blue2red = red - blue
-        #print(yellow2blue_xz)
-        #joint2 = self.calc_angle(yellow2blue, yellow)
+        # print(yellow2blue_xz)
+        # joint2 = self.calc_angle(yellow2blue, yellow)
 
         joint3 = self.calc_angle(yellow2blue, np.array([0, 1, 0]))
         joint3 = - np.pi / 2 + joint3
@@ -269,7 +263,7 @@ class image_converter:
         if joint3 < (- np.pi / 2):
             joint3 = - np.pi + joint3
 
-        transformed_x = np.cross(yellow2blue, np.array([0, 1, 0]))
+        transformed_x = np.cross(np.array([0, 1, 0]), yellow2blue)
         print("XXXXXXXXXXXXXXXX" + str(transformed_x))
         print("yellow to blue: " + str(yellow2blue))
         joint2 = self.calc_angle(transformed_x, np.array([1, 0, 0]))
@@ -278,24 +272,26 @@ class image_converter:
             joint2 = np.pi - joint2
         if joint2 < (- np.pi / 2):
             joint2 = - np.pi + joint2
+        if yellow2blue[0] < 0:
+            joint2 = -joint2
 
         if np.absolute(joint3 - np.pi) < 0.15:
-            joint2 = self.last_sensible_j2 + (np.pi / 2) * np.sin(np.pi / 15)
+            joint2 = self.last_sensible_j2
 
         self.last_sensible_j2 = joint2
-
-
 
         joint4 = self.calc_angle(yellow2blue, blue2red)
         if joint4 > np.pi / 2:
             joint4 = np.pi - joint4
         if joint4 < (- np.pi / 2):
             joint4 = np.pi + joint4
+        project = np.dot(blue2red, transformed_x)
+        if project < 0:
+            joint4 = -joint4
 
         print(joint2)
         print(joint3)
         return [joint2, joint3, joint4]
-
 
 
 # call the class
@@ -311,5 +307,3 @@ def main(args):
 # run the code if the node is called
 if __name__ == '__main__':
     main(sys.argv)
-
-
