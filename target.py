@@ -9,7 +9,6 @@ from std_msgs.msg import Float64MultiArray, Float64
 
 
 def target_publisher():
-
     # Defines publisher and subscriber
     # initialize the node named
     rospy.init_node('target_publisher', anonymous=True)
@@ -32,6 +31,11 @@ def target_publisher():
 
 # run the code if the node is called
 if __name__ == '__main__':
+    target_publisher()
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
     try:
         target_publisher()
     except rospy.ROSInterruptException:
