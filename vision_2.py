@@ -124,7 +124,7 @@ class image_converter:
         return 4 / np.sqrt(dist)
 
     def x_coordinate(self, color):
-        #a = self.pixel2meter(self.cv_image1, True)
+        # a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image2, False) - self.green_center_2
@@ -133,7 +133,7 @@ class image_converter:
         return vector[0]
 
     def y_coordinate(self, color):
-        #a = self.pixel2meter(self.cv_image1, True)
+        # a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image1, True) - self.green_center_1
@@ -142,8 +142,8 @@ class image_converter:
         return vector[0]
 
     def z_coordinate(self, color):
-        #a1 = self.pixel2meter(self.cv_image1, True)
-        #a2 = self.pixel2meter(self.cv_image2, False)
+        # a1 = self.pixel2meter(self.cv_image1, True)
+        # a2 = self.pixel2meter(self.cv_image2, False)
         vector1 = np.array([])
         vector2 = np.array([])
         if color == "red":
@@ -178,7 +178,35 @@ class image_converter:
         angle = np.arccos(d / (l1 * l2))
         return angle
 
-    def joint_angles(self):
+    def joint_angle_1(self):
+        green, yellow, blue, red = self.all_coordinates()
+        yellow2blue = blue - yellow
+        yellow2blue_xy = np.array([yellow2blue[0], yellow2blue[1]])
+        blue2red = red - blue
+
+        # assuming joint3 is always positive
+        joint3 = np.absolute(self.calc_angle(yellow2blue, np.array(yellow)))
+        if joint3 > np.pi / 2:
+            joint3 = np.pi - joint3
+
+        # if joint3 is always positive, there exit case that joint1 suddenly turn 180 degree
+        # but such error does not affect inverse kinematics
+        joint1 = self.calc_angle(yellow2blue_xy, np.array([0, -1]))
+        if yellow2blue_xy[0] < 0:
+            joint1 = -joint1
+
+        y_after_joint1 = np.array([-np.sin(joint1), np.cos(joint1), 0])
+        x_after_joint1 = np.array([np.cos(joint1), np.sin(joint1), 0])
+
+        joint4 = np.absolute(self.calc_angle(yellow2blue, blue2red))
+        if joint4 > np.pi / 2:
+            joint4 = np.pi - joint4
+        if np.dot(blue2red, x_after_joint1) < 0:
+            joint4 = -joint4
+
+        return [joint1, joint3, joint4]
+
+    def joint_angles_2(self):
         green, yellow, blue, red = self.all_coordinates()
         yellow2blue = blue - yellow
         yellow2blue_xy = np.array([yellow2blue[0], yellow2blue[1]])
@@ -199,17 +227,17 @@ class image_converter:
         if diff > 5:
             joint1 = -joint1
         diff = np.absolute(joint1 - self.last_joint1)
-        if np.absolute(joint1-np.pi-self.last_joint1) < diff:
-            joint1 = joint1-np.pi
-        elif np.absolute(joint1+np.pi-self.last_joint1) < diff:
-            joint1 = joint1+np.pi
+        if np.absolute(joint1 - np.pi - self.last_joint1) < diff:
+            joint1 = joint1 - np.pi
+        elif np.absolute(joint1 + np.pi - self.last_joint1) < diff:
+            joint1 = joint1 + np.pi
 
         if np.absolute(joint3) < 0.15:
             joint1 = self.last_joint1
 
-        if joint1>np.pi:
+        if joint1 > np.pi:
             joint1 = np.pi
-        if joint1<-np.pi:
+        if joint1 < -np.pi:
             joint1 = -np.pi
 
         self.last_joint1 = joint1
@@ -227,6 +255,7 @@ class image_converter:
         if np.dot(blue2red, x_after_joint1) < 0:
             joint4 = -joint4
         return [joint1, joint3, joint4]
+
 
 # call the class
 def main(args):
