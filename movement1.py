@@ -25,7 +25,7 @@ def movement1_publisher():
         joint2 = Float64()
         joint3 = Float64()
         joint4 = Float64()
-        joint2.data = np.fabs((np.pi / 2) * np.sin(cur_time * np.pi / 15))
+        joint2.data = (np.pi / 2) * np.sin(cur_time * np.pi / 15)
         joint3.data = (np.pi / 2) * np.sin(cur_time * np.pi / 20)
         joint4.data = (np.pi / 2) * np.sin(cur_time * np.pi / 18)
 

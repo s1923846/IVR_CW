@@ -23,6 +23,9 @@ class image_converter:
         self.yellow_center_1 = np.array([402, 440])
         self.yellow_center_2 = np.array([401, 440])
         self.last_joint1 = 0
+        self.j3_close_to_0 = True
+        self.j3_positive = True
+        self.last_joint3 = 0
         self.cv_image1 = np.array([])
         self.cv_image2 = np.array([])
 
@@ -162,14 +165,10 @@ class image_converter:
         y_blue = self.y_coordinate("blue")
         z_blue = self.z_coordinate("blue")
         blue = np.array([x_blue, y_blue, z_blue])
-
         x_red = self.x_coordinate("red")
         y_red = self.y_coordinate("red")
         z_red = self.z_coordinate("red")
         red = np.array([x_red, y_red, z_red])
-        print('x: ' + str(0.03508 * x_red))
-        print('y: ' + str(0.03636 * y_red))
-        print('z: ' + str(0.03572 * z_red))
         return [green, yellow, blue, red]
 
     def calc_angle(self, v1, v2):
@@ -184,21 +183,50 @@ class image_converter:
         yellow2blue = blue - yellow
         yellow2blue_xy = np.array([yellow2blue[0], yellow2blue[1]])
         blue2red = red - blue
-        joint1 = self.calc_angle(yellow2blue_xy, np.array([0, -1]))
-        if yellow2blue_xy[0] < 0:
-            joint1 = -joint1
+
         joint3 = self.calc_angle(yellow2blue, np.array(yellow))
         if joint3 > np.pi / 2:
             joint3 = np.pi - joint3
         if joint3 < (- np.pi / 2):
             joint3 = - np.pi + joint3
+
+        joint1 = self.calc_angle(yellow2blue_xy, np.array([0, -1]))
+        if yellow2blue_xy[0] < 0:
+            joint1 = -joint1
+
+        diff = np.absolute(joint1 - self.last_joint1)
+        print(diff)
+        if diff > 5:
+            joint1 = -joint1
+        diff = np.absolute(joint1 - self.last_joint1)
+        if np.absolute(joint1-np.pi-self.last_joint1) < diff:
+            joint1 = joint1-np.pi
+        elif np.absolute(joint1+np.pi-self.last_joint1) < diff:
+            joint1 = joint1+np.pi
+
+        if np.absolute(joint3) < 0.15:
+            joint1 = self.last_joint1
+
+        if joint1>np.pi:
+            joint1 = np.pi
+        if joint1<-np.pi:
+            joint1 = -np.pi
+
+        self.last_joint1 = joint1
+
+        y_after_joint1 = np.array([-np.sin(joint1), np.cos(joint1), 0])
+        x_after_joint1 = np.array([np.cos(joint1), np.sin(joint1), 0])
+        if np.dot(yellow2blue, y_after_joint1) > 0:
+            joint3 = -joint3
+
         joint4 = self.calc_angle(yellow2blue, blue2red)
         if joint4 > np.pi / 2:
             joint4 = np.pi - joint4
         if joint4 < (- np.pi / 2):
             joint4 = np.pi + joint4
+        if np.dot(blue2red, x_after_joint1) < 0:
+            joint4 = -joint4
         return [joint1, joint3, joint4]
-        #0.85**(np.sin(np.fabs(joint1)))*
 
 # call the class
 def main(args):
