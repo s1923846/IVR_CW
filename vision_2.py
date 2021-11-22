@@ -18,10 +18,10 @@ class image_converter:
         self.last_red2 = np.array([0, 0])
         self.last_blue1 = np.array([0, 0])
         self.last_blue2 = np.array([0, 0])
-        self.green_center_1 = np.array([405, 544])
-        self.green_center_2 = np.array([395, 540])
-        self.yellow_center_1 = np.array([402, 440])
-        self.yellow_center_2 = np.array([401, 440])
+        self.green_center_1 = np.array([400, 544])
+        self.green_center_2 = np.array([399, 540])
+        self.yellow_center_1 = np.array([400, 440])
+        self.yellow_center_2 = np.array([400, 440])
         self.last_joint1 = 0
         self.j3_close_to_0 = True
         self.j3_positive = True
@@ -70,7 +70,7 @@ class image_converter:
             joint1 = Float64()
             joint3 = Float64()
             joint4 = Float64()
-            joint1.data, joint3.data, joint4.data = self.joint_angles()
+            joint1.data, joint3.data, joint4.data = self.joint_angle_1()
 
             self.joint1_pub.publish(joint1)
             self.joint3_pub.publish(joint3)
@@ -180,6 +180,9 @@ class image_converter:
 
     def joint_angle_1(self):
         green, yellow, blue, red = self.all_coordinates()
+        print('x: ' + str(red[0] * 0.038))
+        print('y: ' + str(red[1] * 0.038))
+        print('z: ' + str(red[2] * 0.038))
         yellow2blue = blue - yellow
         yellow2blue_xy = np.array([yellow2blue[0], yellow2blue[1]])
         blue2red = red - blue
@@ -223,7 +226,7 @@ class image_converter:
             joint1 = -joint1
 
         diff = np.absolute(joint1 - self.last_joint1)
-        print(diff)
+        #print(diff)
         if diff > 5:
             joint1 = -joint1
         diff = np.absolute(joint1 - self.last_joint1)

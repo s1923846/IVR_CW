@@ -23,9 +23,11 @@ class forward_kinematics:
         self.robot_joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
+        self.curr_end_pos = rospy.Publisher("curr_end_pos", Float64MultiArray, queue_size=10)
         timeSync = message_filters.ApproximateTimeSynchronizer([self.joint1_sub, self.joint3_sub,
                                                                 self.joint4_sub, self.target_sub],
                                                                10, 0.1, allow_headerless=True)
+
         timeSync.registerCallback(self.callback)
 
         self.joint1_angle = 0
@@ -80,6 +82,9 @@ class forward_kinematics:
         print("y: " + str(y))
         print("z: " + str(z))
 
+        curr_end_pos = Float64MultiArray()
+        curr_end_pos.data = np.array([x, y, z])
+
         joint1 = Float64()
         joint3 = Float64()
         joint4 = Float64()
@@ -89,6 +94,7 @@ class forward_kinematics:
             self.robot_joint1_pub.publish(joint1)
             self.robot_joint3_pub.publish(joint3)
             self.robot_joint4_pub.publish(joint4)
+            self.curr_end_pos.publish(curr_end_pos)
         except rospy.ROSInterruptException as e:
             print(e)
 
