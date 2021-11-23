@@ -14,6 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 class image_converter:
     # Defines publisher and subscriber
     def __init__(self):
+
         self.last_red1 = np.array([0, 0])
         self.last_red2 = np.array([0, 0])
         self.last_blue1 = np.array([0, 0])
@@ -70,7 +71,7 @@ class image_converter:
             joint1 = Float64()
             joint3 = Float64()
             joint4 = Float64()
-            joint1.data, joint3.data, joint4.data = self.joint_angle_1()
+            joint1.data, joint3.data, joint4.data = self.joint_angles_1()
 
             self.joint1_pub.publish(joint1)
             self.joint3_pub.publish(joint3)
@@ -178,7 +179,7 @@ class image_converter:
         angle = np.arccos(d / (l1 * l2))
         return angle
 
-    def joint_angle_1(self):
+    def joint_angles_1(self):
         green, yellow, blue, red = self.all_coordinates()
         print('x: ' + str(red[0] * 0.038))
         print('y: ' + str(red[1] * 0.038))

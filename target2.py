@@ -12,7 +12,7 @@ def movement1_publisher():
     # Defines publisher and subscriber
     # initialize the node named
     rospy.init_node('movement_publisher', anonymous=True)
-    rate = rospy.Rate(1)  # 50hz
+    rate = rospy.Rate(50)  # 50hz
 
     robot_joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
     robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)

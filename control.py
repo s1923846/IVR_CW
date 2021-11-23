@@ -39,9 +39,9 @@ class forward_kinematics:
         self.time = rospy.get_time()
         # initialize errors
         self.time_previous_step = np.array([rospy.get_time()], dtype='float64')
-        self.time_previous_step2 = np.array([rospy.get_time()], dtype='float64')
+
         # initialize error and derivative of error for target tracking
-        self.error = np.array([0.0, 0., 0.0], dtype='float64')
+        self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
         self.error_d = np.array([0.0, 0.0, 0.0], dtype='float64')
 
         #[cos(q1) * cos(q3) - sin(q1) * sin(q2) * sin(q3), -cos(q2) * sin(q1), cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2), a3 * (cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2)) + a2 * sin(q1) * sin(q2)]
@@ -88,7 +88,7 @@ class forward_kinematics:
         joint1 = Float64()
         joint3 = Float64()
         joint4 = Float64()
-        joint1.data, joint3.data, joint4.data = self.control_open(self.joint1_angle, self.joint3_angle, self.joint4_angle)
+        joint1.data, joint3.data, joint4.data = self.control_close(self.joint1_angle, self.joint3_angle, self.joint4_angle)
         # Publish the results
         try:
             self.robot_joint1_pub.publish(joint1)
@@ -127,7 +127,6 @@ class forward_kinematics:
         q1 = q1.data
         q2 = q2.data
         q3 = q3.data
-
         jacobian = np.array([[a2*np.cos(q1)*np.sin(q2) - a3*(np.sin(q1)*np.sin(q3) - np.cos(q1)*np.cos(q3)*np.sin(q2)),
                               a2*np.cos(q2)*np.sin(q1) + a3*np.cos(q2)*np.cos(q3)*np.sin(q1),
                               a3*(np.cos(q1)*np.cos(q3) - np.sin(q1)*np.sin(q2)*np.sin(q3))],
@@ -139,23 +138,33 @@ class forward_kinematics:
 
         # Estimate control inputs for open-loop control
 
-    def control_open(self, q1, q2, q3):
+    def control_close(self, q1, q2, q3):
+        # P gain
+        K_p = np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]])
+        # D gain
+        K_d = np.array([[-0.1, 0, 0], [0, -0.1, 0], [0, 0, -0.1]])
         # estimate time step
         cur_time = rospy.get_time()
-        dt = cur_time - self.time_previous_step2
+        dt = cur_time - self.time_previous_step
         self.time_previous_step2 = cur_time
         # calculating the psudeo inverse of Jacobian
-        J_inv = np.linalg.pinv(self.calculate_jacobian(q1, q2, q3))
+        J_inv = np.linalg.inv(self.calculate_jacobian(q1, q2, q3))
         x, y, z = self.calculate_end_pos(q1, q2, q3)
         pos = np.array([x, y, z])
         # desired target pos
         pos_d = self.target_pos.data
         # estimate derivative of desired target pos
-        self.error = (pos_d - pos) / dt
+        self.error_d = ((pos_d - pos) - self.error)/dt #(pos_d - pos) / dt
+        self.error = (pos_d - pos)
+
+
+        # control input (angular velocity of joints)
+        dq_d = np.dot(J_inv, (np.dot(K_d, self.error_d.transpose()) + np.dot(K_p, self.error.transpose())))
         # desired joint angles to follow the target
-        q1_d = q1.data + (dt * np.dot(J_inv, self.error.transpose()))[0]
-        q2_d = q2.data + (dt * np.dot(J_inv, self.error.transpose()))[1]
-        q3_d = q3.data + (dt * np.dot(J_inv, self.error.transpose()))[2]
+        #dq = (dt * np.dot(J_inv, self.error.transpose()))
+        q1_d = q1.data + (dt * dq_d)[0]
+        q2_d = q2.data + (dt * dq_d)[1]
+        q3_d = q3.data + (dt * dq_d)[2]
         return np.array([q1_d, q2_d, q3_d])
 
 # run the code if the node is called
