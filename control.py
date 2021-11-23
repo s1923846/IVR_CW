@@ -174,16 +174,22 @@ class forward_kinematics:
         q2_d = q2.data + dt*dq_d[1]
         q3_d = q3.data + dt*dq_d[2]
         if q1_d > 0:
+            q1_d = q1_d % (2 * np.pi)
             q1_d = min(q1_d, np.pi)
         else:
+            q1_d = - (np.absolute(q1_d) & (2 * np.pi))
             q1_d = max(q1_d, -np.pi)
         if q2_d > 0:
+            q2_d = q2_d % (2 * np.pi)
             q2_d = min(q2_d, np.pi/2)
         else:
+            q2_d = - (np.absolute(q2_d) & (2 * np.pi))
             q2_d = max(q2_d, -np.pi/2)
         if q3_d > 0:
+            q3_d = q3_d % (2 * np.pi)
             q3_d = min(q3_d, np.pi/2)
         else:
+            q3_d = - (np.absolute(q3_d) & (2 * np.pi))
             q3_d = max(q3_d, -np.pi/2)
         return np.array([q1_d, q2_d, q3_d])
 
