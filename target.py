@@ -22,10 +22,10 @@ def target_publisher():
         #y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
         #tx = 3.0 * np.cos(cur_time * np.pi / 20)
         #ty = 4.0 * np.sin(cur_time * np.pi / 14) + 0.5
-        #tz = 1.0 * np.sin(cur_time * np.pi / 18) + 4.5
-        tx = 4.0 * np.cos(cur_time * np.pi / 20)
-        ty = 2
-        tz = 6.5
+        #tz = 1.0 * np.sin(cur_time * np.pi / 18) + 5
+        tx = 2.6 #* np.cos(cur_time * np.pi / 20)
+        ty = 2.5
+        tz = 5
         target_pos = Float64MultiArray()
         print("x: " + str(tx))
         print("y: " + str(ty))

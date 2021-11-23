@@ -5,7 +5,6 @@ import sys
 import rospy
 import numpy as np
 from std_msgs.msg import Float64MultiArray, Float64
-import message_filters
 from sensor_msgs.msg import Image
 
 
@@ -15,25 +14,22 @@ class forward_kinematics:
         # initialize the node named
         rospy.init_node('forward_kinematics', anonymous=True)
 
+        self.joint1_angle = None
+        self.joint3_angle = None
+        self.joint4_angle = None
+        self.target_pos = np.array([0, 0, 0])
+
         # Synchronize subscriptions into one callback
-        self.joint1_sub = message_filters.Subscriber("joint_angle_1", Float64)
-        self.joint3_sub = message_filters.Subscriber("joint_angle_3", Float64)
-        self.joint4_sub = message_filters.Subscriber("joint_angle_4", Float64)
-        self.target_sub = message_filters.Subscriber("target_pos", Float64MultiArray)
+        self.joint1_sub = rospy.Subscriber("joint_angle_1", Float64, self.callback1)
+        self.joint3_sub = rospy.Subscriber("joint_angle_3", Float64, self.callback2)
+        self.joint4_sub = rospy.Subscriber("joint_angle_4", Float64, self.callback3)
+        self.target_sub = rospy.Subscriber("target_pos", Float64MultiArray, self.callback4)
         self.robot_joint1_pub = rospy.Publisher("/robot/joint1_position_controller/command", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
         self.curr_end_pos = rospy.Publisher("curr_end_pos", Float64MultiArray, queue_size=10)
-        timeSync = message_filters.ApproximateTimeSynchronizer([self.joint1_sub, self.joint3_sub,
-                                                                self.joint4_sub, self.target_sub],
-                                                               10, 0.1, allow_headerless=True)
 
-        timeSync.registerCallback(self.callback)
 
-        self.joint1_angle = 0
-        self.joint3_angle = 0
-        self.joint4_angle = 0
-        self.target_pos = np.array([0, 0, 0])
 
         # record the begining time
         self.time = rospy.get_time()
@@ -67,11 +63,20 @@ class forward_kinematics:
         # [a2*cos(q1)*sin(q2) - a3*(sin(q1)*sin(q3) - cos(q1)*cos(q3)*sin(q2)),   a2*cos(q2)*sin(q1) + a3*cos(q2)*cos(q3)*sin(q1), a3*(cos(q1)*cos(q3) - sin(q1)*sin(q2)*sin(q3))]
         # [a3*(cos(q1)*sin(q3) + cos(q3)*sin(q1)*sin(q2)) + a2*sin(q1)*sin(q2), - a2*cos(q1)*cos(q2) - a3*cos(q1)*cos(q2)*cos(q3), a3*(cos(q3)*sin(q1) + cos(q1)*sin(q2)*sin(q3))]
         # [0, - a2*sin(q2) - a3*cos(q3)*sin(q2), -a3*cos(q2)*sin(q3)]
-    def callback(self, data1, data2, data3, data4):
-        self.joint1_angle = data1
-        self.joint3_angle = data2
-        self.joint4_angle = data3
-        self.target_pos = data4
+    def callback1(self, data):
+        self.joint1_angle = data
+
+    def callback2(self, data):
+        self.joint3_angle = data
+
+    def callback3(self, data):
+        self.joint4_angle = data
+
+    def callback4(self, data):
+        #self.joint1_angle = data1
+        #self.joint3_angle = data2
+        #self.joint4_angle = data3
+        self.target_pos = data
 
         x = Float64()
         y = Float64()
@@ -140,7 +145,7 @@ class forward_kinematics:
 
     def control_close(self, q1, q2, q3):
         # P gain
-        K_p = np.array([[10, 0, 0], [0, 10, 0], [0, 0, 10]])
+        K_p = np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]])
         # D gain
         K_d = np.array([[0.1, 0, 0], [0, 0.1, 0], [0, 0, 0.1]])
         # estimate time step
@@ -195,4 +200,3 @@ if __name__ == '__main__':
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
-
