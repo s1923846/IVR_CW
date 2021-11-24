@@ -19,13 +19,9 @@ def target_publisher():
     t0 = rospy.get_time()
     while not rospy.is_shutdown():
         cur_time = np.array([rospy.get_time()]) - t0
-        #y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
-        #tx = 3.0 * np.cos(cur_time * np.pi / 20)
-        #ty = 4.0 * np.sin(cur_time * np.pi / 14) + 0.5
-        #tz = 1.0 * np.sin(cur_time * np.pi / 18) + 5
-        tx = 0
-        ty = 6 * np.cos(cur_time * np.pi / 18)
-        tz = 6 * np.absolute(np.sin(cur_time * np.pi / 18)) + 4
+        tx = 3.0 * np.cos(cur_time * np.pi / 20)
+        ty = 4.0 * np.sin(cur_time * np.pi / 14) + 0.5
+        tz = 1.0 * np.sin(cur_time * np.pi / 18) + 4.5
         target_pos = Float64MultiArray()
         print("x: " + str(tx))
         print("y: " + str(ty))

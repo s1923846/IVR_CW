@@ -21,8 +21,7 @@ def movement2_publisher():
 
     t0 = rospy.get_time()
     while not rospy.is_shutdown():
-        cur_time = np.array([rospy.get_time()]) - t0 -2
-        # y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
+        cur_time = np.array([rospy.get_time()]) - t0
         joint1 = Float64()
         joint3 = Float64()
         joint4 = Float64()

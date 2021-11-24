@@ -19,6 +19,7 @@ class image_converter:
         self.last_red2 = np.array([0, 0])
         self.last_blue1 = np.array([0, 0])
         self.last_blue2 = np.array([0, 0])
+        # Hardcode the y coordinate of green and yellow sphere.
         self.green_center_1 = np.array([400, 544])
         self.green_center_2 = np.array([399, 540])
         self.yellow_center_1 = np.array([400, 440])
@@ -45,8 +46,6 @@ class image_converter:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
-        # Hardcode the y coordinate of green and yellow sphere because they don't move.
-
     def callback1(self, data_1):
         try:
             self.cv_image1 = self.bridge.imgmsg_to_cv2(data_1, "bgr8")
@@ -60,10 +59,6 @@ class image_converter:
             self.cv_image2 = self.bridge.imgmsg_to_cv2(data_2, "bgr8")
         except CvBridgeError as e:
             print(e)
-
-        # Uncomment if you want to save the image
-        # cv2.imwrite('image_copy.png', cv_image)
-
         im1 = cv2.imshow('window1', self.cv_image2)
         cv2.waitKey(1)
         # Publish the results
@@ -79,7 +74,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-    # In this method you can focus on detecting the centre of the red circle.
+    # Detecting the centre of the red circle.
     def detect_red(self, image, is_image1):
         mask = cv2.inRange(image, (0, 0, 100), (0, 0, 255))
         kernel = np.ones((5, 5), np.uint8)
@@ -109,23 +104,7 @@ class image_converter:
                 self.last_blue2 = [int(M['m10'] / M['m00']), int(M['m01'] / M['m00'])]
             return np.array(self.last_blue2)
 
-    # Calculate the conversion from pixel to meter
-    def pixel2meter(self, image, is_image1):
-        # Obtain the centre of each coloured blob
-        circle1Pos = np.array([])
-        circle2Pos = np.array([])
-        if is_image1:
-            circle1Pos = self.yellow_center_1
-            circle2Pos = self.green_center_1
-        else:
-            circle1Pos = self.yellow_center_2
-            circle2Pos = self.green_center_2
-        # find the distance between two circles
-        dist = np.sum((circle1Pos - circle2Pos) ** 2)
-        return 4 / np.sqrt(dist)
-
     def x_coordinate(self, color):
-        # a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image2, False) - self.green_center_2
@@ -134,7 +113,6 @@ class image_converter:
         return vector[0]
 
     def y_coordinate(self, color):
-        # a = self.pixel2meter(self.cv_image1, True)
         vector = np.array([])
         if color == "red":
             vector = self.detect_red(self.cv_image1, True) - self.green_center_1
@@ -143,8 +121,6 @@ class image_converter:
         return vector[0]
 
     def z_coordinate(self, color):
-        # a1 = self.pixel2meter(self.cv_image1, True)
-        # a2 = self.pixel2meter(self.cv_image2, False)
         vector1 = np.array([])
         vector2 = np.array([])
         if color == "red":
@@ -199,7 +175,6 @@ class image_converter:
         if yellow2blue_xy[0] < 0:
             joint1 = -joint1
 
-        y_after_joint1 = np.array([-np.sin(joint1), np.cos(joint1), 0])
         x_after_joint1 = np.array([np.cos(joint1), np.sin(joint1), 0])
 
         joint4 = np.absolute(self.calc_angle(yellow2blue, blue2red))
@@ -227,7 +202,6 @@ class image_converter:
             joint1 = -joint1
 
         diff = np.absolute(joint1 - self.last_joint1)
-        #print(diff)
         if diff > 5:
             joint1 = -joint1
         diff = np.absolute(joint1 - self.last_joint1)

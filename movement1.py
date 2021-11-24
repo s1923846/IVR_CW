@@ -12,7 +12,7 @@ def movement1_publisher():
     # Defines publisher and subscriber
     # initialize the node named
     rospy.init_node('movement_publisher', anonymous=True)
-    rate = rospy.Rate(1)  # 50hz
+    rate = rospy.Rate(50)  # 50hz
 
     robot_joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
     robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
@@ -21,7 +21,6 @@ def movement1_publisher():
     t0 = rospy.get_time()
     while not rospy.is_shutdown():
         cur_time = np.array([rospy.get_time()]) - t0
-        # y_d = float(6 + np.absolute(1.5* np.sin(cur_time * np.pi/100)))
         joint2 = Float64()
         joint3 = Float64()
         joint4 = Float64()

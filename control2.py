@@ -19,6 +19,7 @@ class forward_kinematics:
         self.joint4_angle = 0.0
         self.target_pos = np.array([0, 0, 0])
         self.error_i = 0
+        self.flip = False
 
         # Synchronize subscriptions into one callback
         self.joint1_sub = rospy.Subscriber("joint_angle_1", Float64, self.callback1)
@@ -41,29 +42,6 @@ class forward_kinematics:
         self.error = np.array([0.0, 0.0, 0.0], dtype='float64')
         self.error_d = np.array([0.0, 0.0, 0.0], dtype='float64')
 
-        #[cos(q1) * cos(q3) - sin(q1) * sin(q2) * sin(q3), -cos(q2) * sin(q1), cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2), a3 * (cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2)) + a2 * sin(q1) * sin(q2)]
-        #[cos(q3) * sin(q1) + cos(q1) * sin(q2) * sin(q3), cos(q1) * cos(q2) , sin(q1) * sin(q3) - cos(q1) * cos(q3) * sin(q2), a3 * (sin(q1) * sin(q3) - cos(q1) * cos(q3) * sin(q2)) - a2 * cos(q1) * sin(q2)]
-        #[-cos(q2) * sin(q3)                             , sin(q2)           , cos(q2) * cos(q3)                              , a1 + a2 * cos(q2) + a3 * cos(q2) * cos(q3)]
-        #[0                                              , 0                 , 0                                              , 1]
-
-       # Jacobian matrix
-
-        # [0, sin(q1) * sin(q2), cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2),
-        # a2 * cos(q1) * sin(q2) - a3 * (sin(q1) * sin(q3) - cos(q1) * cos(q3) * sin(q2)),
-        # a2 * cos(q2) * sin(q1) + a3 * cos(q2) * cos(q3) * sin(q1),
-        # a3 * (cos(q1) * cos(q3) - sin(q1) * sin(q2) * sin(q3))]
-
-        # [0, -cos(q1) * sin(q2), sin(q1) * sin(q3) - cos(q1) * cos(q3) * sin(q2),
-        # a3 * (cos(q1) * sin(q3) + cos(q3) * sin(q1) * sin(q2)) + a2 * sin(q1) * sin(q2),
-        # - a2 * cos(q1) * cos(q2) - a3 * cos(q1) * cos(q2) * cos(q3),
-        # a3 * (cos(q3) * sin(q1) + cos(q1) * sin(q2) * sin(q3))]
-
-        # [1, cos(q2), cos(q2) * cos(q3), 0, - a2 * sin(q2) - a3 * cos(q3) * sin(q2), -a3 * cos(q2) * sin(q3)]
-
-        # new jacobian:
-        # [a2*cos(q1)*sin(q2) - a3*(sin(q1)*sin(q3) - cos(q1)*cos(q3)*sin(q2)),   a2*cos(q2)*sin(q1) + a3*cos(q2)*cos(q3)*sin(q1), a3*(cos(q1)*cos(q3) - sin(q1)*sin(q2)*sin(q3))]
-        # [a3*(cos(q1)*sin(q3) + cos(q3)*sin(q1)*sin(q2)) + a2*sin(q1)*sin(q2), - a2*cos(q1)*cos(q2) - a3*cos(q1)*cos(q2)*cos(q3), a3*(cos(q3)*sin(q1) + cos(q1)*sin(q2)*sin(q3))]
-        # [0, - a2*sin(q2) - a3*cos(q3)*sin(q2), -a3*cos(q2)*sin(q3)]
     def callback1(self, data):
         self.joint1_angle = data
 
@@ -74,9 +52,6 @@ class forward_kinematics:
         self.joint4_angle = data
 
     def callback4(self, data):
-        #self.joint1_angle = data1
-        #self.joint3_angle = data2
-        #self.joint4_angle = data3
         self.target_pos = data
 
         x = Float64()
@@ -133,68 +108,21 @@ class forward_kinematics:
         q1 = q1.data
         q2 = q2.data
         q3 = q3.data
+
         jacobian = np.array([[a2*np.cos(q1)*np.sin(q2) - a3*(np.sin(q1)*np.sin(q3) - np.cos(q1)*np.cos(q3)*np.sin(q2)),
-                              a2*np.cos(q2)*np.sin(q1) + a3*np.cos(q2)*np.cos(q3)*np.sin(q1),
-                              a3*(np.cos(q1)*np.cos(q3) - np.sin(q1)*np.sin(q2)*np.sin(q3))],
-                    [a3*(np.cos(q1)*np.sin(q3) + np.cos(q3)*np.sin(q1)*np.sin(q2)) + a2*np.sin(q1)*np.sin(q2),
-                     - a2*np.cos(q1)*np.cos(q2) - a3*np.cos(q1)*np.cos(q2)*np.cos(q3),
-                     a3*(np.cos(q3)*np.sin(q1) + np.cos(q1)*np.sin(q2)*np.sin(q3))],
-                    [0, - a2*np.sin(q2) - a3*np.cos(q3)*np.sin(q2), -a3*np.cos(q2)*np.sin(q3)]])
+                                                        a2*np.cos(q2)*np.sin(q1) + a3*np.cos(q2)*np.cos(q3)*np.sin(q1),
+                                                        a3*(np.cos(q1)*np.cos(q3) - np.sin(q1)*np.sin(q2)*np.sin(q3))],
+                             [a3*(np.cos(q1)*np.sin(q3) + np.cos(q3)*np.sin(q1)*np.sin(q2)) + a2*np.sin(q1)*np.sin(q2),
+                                                       -a2*np.cos(q1)*np.cos(q2) - a3*np.cos(q1)*np.cos(q2)*np.cos(q3),
+                                                        a3*(np.cos(q3)*np.sin(q1) + np.cos(q1)*np.sin(q2)*np.sin(q3))],
+                             [0, - a2*np.sin(q2) - a3*np.cos(q3)*np.sin(q2), -a3*np.cos(q2)*np.sin(q3)]])
         return jacobian
-
-        # Estimate control inputs for open-loop control
-    def control_open(self, q1, q2, q3):
-        # estimate time step
-        cur_time = rospy.get_time()
-        dt = cur_time - self.time_previous_step
-        self.time_previous_step = cur_time
-
-        x, y, z = self.calculate_end_pos(q1, q2, q3)
-        pos = np.array([x, y, z])
-
-        # desired target pos
-        xyz_d = self.target_pos.data
-        x_d = xyz_d[0]
-        y_d = xyz_d[1]
-        z_d = xyz_d[2]
-        pos_d = np.array([x_d, y_d, z_d])
-        # estimate derivative of desired target pos
-        # self.error_d = ((pos_d - pos) - self.error)/dt #(pos_d - pos) / dt
-        self.error = (pos_d - pos)/dt
-
-        # calculating the psudeo inverse of Jacobian
-        J_inv = np.linalg.pinv(self.calculate_jacobian(q1, q2, q3))
-
-        # control input (angular velocity of joints)
-        #dq_d = np.dot(J_inv, (np.dot(K_d, self.error_d.transpose()) + np.dot(K_p, self.error.transpose())))
-        # desired joint angles to follow the target
-        dq = (dt * np.dot(J_inv, self.error.transpose()))
-        print(q1.data)
-        q1_d = q1.data + dq[0]
-        q2_d = q2.data + dq[1]
-        q3_d = q3.data + dq[2]
-        if q1_d >= 0:
-            q1_d = q1_d
-            q1_d = min(q1_d, np.pi)
-        else:
-            q1_d = max(q1_d, -np.pi)
-        if q2_d > 0:
-            q2_d = min(q2_d, np.pi / 2)
-        else:
-            q2_d = max(q2_d, -np.pi / 2)
-        if q3_d > 0:
-            q3_d = min(q3_d, np.pi / 2)
-        else:
-            q3_d = max(q3_d, -np.pi / 2)
-        return np.array([q1_d, q2_d, q3_d])
 
     def control_close(self, q1, q2, q3):
         # P gain
         K_p = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         # D gain
         K_d = np.array([[0.1, 0, 0], [0, 0.1, 0], [0, 0, 0.1]])
-        # I gain
-        K_i = np.array([[0.01, 0, 0], [0, 0.01, 0], [0, 0, 0.01]])
         # estimate time step
         cur_time = rospy.get_time()
         dt = cur_time - self.time_previous_step
@@ -212,25 +140,14 @@ class forward_kinematics:
         # estimate derivative of desired target pos
         self.error_d = ((pos_d - pos) - self.error) / dt
         self.error = pos_d - pos
-        #self.error_i += self.error
-        #for i in range(3):
-        #    if np.absolute(self.error[i]) > 0.3:
-        #        self.error_i[i] += self.error[i]
-        #print(self.error_i)
 
         # calculating the psudeo inverse of Jacobian
         J_inv = np.linalg.pinv(self.calculate_jacobian(q1, q2, q3))
 
         # control input (angular velocity of joints)
-        xxx = (np.dot(K_d, self.error_d.transpose()) + np.dot(K_p, self.error.transpose()))
-        print(xxx)
-        dq_d = np.dot(J_inv, xxx)
-        print("aaa")
-        print(np.dot(self.calculate_jacobian(q1, q2, q3), dq_d))
+        x = (np.dot(K_d, self.error_d.transpose()) + np.dot(K_p, self.error.transpose()))
+        dq_d = np.dot(J_inv, x)
         # desired joint angles to follow the target
-        #dq = (dt * np.dot(J_inv, self.error_d.transpose()))
-        print(q2.data)
-        print(dq_d[2])
         q1_d = q1.data + 50*dt*dq_d[0]
         q2_d = q2.data + 50*dt*dq_d[1]
         q3_d = q3.data + 50*dt*dq_d[2]
@@ -250,11 +167,10 @@ class forward_kinematics:
         if q2_d < 0:
             q2_d = -q2_d
             q3_d = -q3_d
-            if q1_d>0:
-                q1_d = q1_d-np.pi
+            if q1_d > 0:
+                q1_d = q1_d - np.pi
             else:
-                q1_d = q1_d+np.pi
-        print([q1_d, q2_d, q3_d])
+                q1_d = q1_d + np.pi
         return np.array([q1_d, q2_d, q3_d])
 
 # run the code if the node is called
