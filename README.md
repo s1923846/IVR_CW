@@ -1,4 +1,5 @@
 # IVR_CW
+Introduction to Vision and Robotics coursework, UoE
 
 movement1.py: move the joints for the first question (2.1)
 
